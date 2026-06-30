@@ -127,13 +127,17 @@ class MatchEngine:
         matched = resume_skills & all_job_skills
         required_matched = resume_skills & job_required
 
-        # Weight required skills more heavily
+        # Weight required skills more heavily — guard against zero division
         if job_required:
             required_score = (len(required_matched) / len(job_required)) * 70
-            additional_score = (len(matched - required_matched) / len(all_job_skills - job_required)) * 30
+            optional_skills = all_job_skills - job_required
+            if optional_skills:
+                additional_score = (len(matched - required_matched) / len(optional_skills)) * 30
+            else:
+                additional_score = 30 if required_matched else 0
             match_score = int(required_score + additional_score)
         else:
-            match_score = int((len(matched) / len(all_job_skills)) * 100)
+            match_score = int((len(matched) / len(all_job_skills)) * 100) if all_job_skills else 50
 
         reasoning = f"Matched {len(matched)}/{len(all_job_skills)} technical skills ({len(required_matched)}/{len(job_required)} required)"
         return match_score, reasoning

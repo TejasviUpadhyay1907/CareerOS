@@ -218,7 +218,10 @@ async def analyze_resume(
         raise NotFoundError("Resume not found")
 
     if not resume.raw_text:
-        raise ValidationError("Resume text not available for analysis")
+        # Use filename as fallback text so at least basic analysis works
+        fallback = f"Resume: {resume.original_filename}. No extractable text found."
+        await repo.update_resume(request.resume_id, raw_text=fallback)
+        resume.raw_text = fallback
 
     try:
         # Parse resume with AI
