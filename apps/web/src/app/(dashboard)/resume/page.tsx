@@ -9,12 +9,14 @@ import { Timeline } from '@/components/resume/Timeline';
 import { RecommendationCard } from '@/components/resume/RecommendationCard';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useUploadResume, useAnalyzeResume } from '@/hooks/api/resume';
+import { Loader2 } from 'lucide-react';
 
 export default function ResumePage() {
   const { user } = useAuth();
   const [resumeId, setResumeId] = useState<string | null>(null);
   const [resumeData, setResumeData] = useState<any>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
 
   const uploadMutation = useUploadResume();
   const analyzeMutation = useAnalyzeResume();
@@ -27,7 +29,8 @@ export default function ResumePage() {
     const uploadResult = await uploadMutation.mutateAsync({ file, userId: user.id });
     setResumeId(uploadResult.id);
 
-    // Analyze with AI
+    // Analyze with AI — show spinner
+    setAnalyzing(true);
     try {
       const analysis = await analyzeMutation.mutateAsync(uploadResult.id);
       setResumeData({
@@ -50,9 +53,8 @@ export default function ResumePage() {
         weaknesses: analysis.analysis.weaknesses,
       });
     } catch (err) {
-      // AI may not be configured — still show the upload succeeded
       setAnalysisError(
-        err instanceof Error ? err.message : 'AI analysis unavailable. Configure OPENAI_API_KEY to enable.'
+        err instanceof Error ? err.message : 'AI analysis unavailable.'
       );
       setResumeData({
         healthScore: 0,
@@ -64,8 +66,27 @@ export default function ResumePage() {
         strengths: [],
         weaknesses: [],
       });
+    } finally {
+      setAnalyzing(false);
     }
   };
+
+  // Show AI analysis spinner after upload
+  if (analyzing) {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold">Resume Intelligence</h1>
+          <p className="mt-2 text-muted-foreground">Upload your resume and get AI-powered insights</p>
+        </div>
+        <div className="flex flex-col items-center justify-center py-24 bg-card rounded-xl border">
+          <Loader2 className="w-12 h-12 animate-spin text-primary mb-4" />
+          <p className="text-lg font-medium">AI is analyzing your resume...</p>
+          <p className="text-sm text-muted-foreground mt-2">This takes 10–20 seconds. Please wait.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">

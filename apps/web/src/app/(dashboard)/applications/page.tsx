@@ -41,21 +41,25 @@ export default function ApplicationsPage() {
   const [addJobId, setAddJobId] = useState('');
   const [addStatus, setAddStatus] = useState('wishlist');
   const [addNotes, setAddNotes] = useState('');
+  const [addJobUrl, setAddJobUrl] = useState('');
   const [addError, setAddError] = useState('');
 
   const handleAdd = async () => {
     if (!addResumeId) { setAddError('Select a resume.'); return; }
-    // job_id is optional — user can add application without analyzing job first
     setAddError('');
     try {
+      // Store job URL in notes if provided
+      const notesWithUrl = addJobUrl
+        ? `${addNotes ? addNotes + '\n' : ''}JOB_URL:${addJobUrl}`
+        : addNotes || undefined;
       await createMutation.mutateAsync({
         resume_id: addResumeId,
         job_id: addJobId || undefined,
         status: addStatus,
-        notes: addNotes || undefined,
+        notes: notesWithUrl,
       });
       setShowAdd(false);
-      setAddResumeId(''); setAddJobId(''); setAddStatus('wishlist'); setAddNotes('');
+      setAddResumeId(''); setAddJobId(''); setAddStatus('wishlist'); setAddNotes(''); setAddJobUrl('');
     } catch (err) {
       setAddError(err instanceof Error ? err.message : 'Failed to create application');
     }
@@ -153,6 +157,17 @@ export default function ApplicationsPage() {
               </div>
 
               <div>
+                <label className="text-sm font-medium mb-1 block">Job URL <span className="text-muted-foreground font-normal">(optional — enables View Job)</span></label>
+                <input
+                  type="url"
+                  value={addJobUrl}
+                  onChange={(e) => setAddJobUrl(e.target.value)}
+                  placeholder="https://company.com/jobs/..."
+                  className="w-full px-3 py-2 border rounded-lg bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+
+              <div>
                 <label className="text-sm font-medium mb-1 block">Notes (optional)</label>
                 <textarea
                   value={addNotes}
@@ -229,12 +244,16 @@ export default function ApplicationsPage() {
         <div className="space-y-3">
           {filtered.map((app) => {
             const job = jobs.find((j) => j.id === app.job_id);
+            // Extract job URL from notes (stored as JOB_URL:https://...)
+            const jobUrlMatch = app.notes?.match(/JOB_URL:(https?:\/\/[^\s\n]+)/);
+            const jobUrl = jobUrlMatch ? jobUrlMatch[1] : null;
+            const displayNotes = app.notes?.replace(/\nJOB_URL:https?:\/\/[^\s\n]+/, '').replace(/JOB_URL:https?:\/\/[^\s\n]+/, '').trim() || null;
             return (
               <div key={app.id} className="bg-card rounded-xl p-5 border hover:border-primary/40 transition-colors">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-semibold">{job?.title ?? 'Unknown Role'}</h3>
+                      <h3 className="font-semibold">{job?.title ?? 'Application'}</h3>
                       <span className={`px-2 py-0.5 text-xs rounded-full capitalize ${STATUS_COLORS[app.status] ?? ''}`}>
                         {app.status.replace('_', ' ')}
                       </span>
@@ -257,8 +276,8 @@ export default function ApplicationsPage() {
                         {new Date(app.created_at).toLocaleDateString()}
                       </span>
                     </div>
-                    {app.notes && (
-                      <p className="text-xs text-muted-foreground mt-2 line-clamp-1">{app.notes}</p>
+                    {displayNotes && (
+                      <p className="text-xs text-muted-foreground mt-2 line-clamp-1">{displayNotes}</p>
                     )}
                   </div>
 
@@ -272,14 +291,18 @@ export default function ApplicationsPage() {
                         <option key={s} value={s}>{s.replace('_', ' ')}</option>
                       ))}
                     </select>
-                    {job && (
+                    {jobUrl ? (
                       <a
-                        href={`/job-analysis?job_id=${job.id}`}
+                        href={jobUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="flex items-center gap-1 text-xs text-primary hover:underline"
                       >
                         <ExternalLink className="w-3 h-3" /> View Job
                       </a>
-                    )}
+                    ) : job ? (
+                      <span className="text-xs text-muted-foreground">No job URL added</span>
+                    ) : null}
                   </div>
                 </div>
               </div>
