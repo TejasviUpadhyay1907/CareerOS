@@ -19,7 +19,7 @@ async def lifespan(app: FastAPI):
     """Application lifespan manager."""
     logger.info("Starting CareerOS API")
 
-    # Create DB tables (skip if DB is unavailable — health check still works)
+    # Create DB tables
     try:
         from app.db.base import Base
         from app.db.session import engine
@@ -28,7 +28,7 @@ async def lifespan(app: FastAPI):
             await conn.run_sync(Base.metadata.create_all)
         logger.info("Database tables ready")
     except Exception as e:
-        logger.warning(f"DB init skipped: {e}")
+        logger.warning(f"DB init warning: {e}")
 
     yield
     logger.info("Shutting down CareerOS API")
@@ -38,8 +38,8 @@ app = FastAPI(
     title=settings.app_name,
     description="CareerOS Backend API",
     version="1.0.0",
-    docs_url="/docs" if settings.debug else None,
-    redoc_url="/redoc" if settings.debug else None,
+    docs_url="/docs",
+    redoc_url="/redoc",
     lifespan=lifespan,
 )
 
