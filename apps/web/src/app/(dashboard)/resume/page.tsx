@@ -23,11 +23,9 @@ export default function ResumePage() {
     setAnalysisError(null);
     setResumeData(null);
 
-    // Step 1: Upload
     const uploadResult = await uploadMutation.mutateAsync({ file, userId: user.id });
     setResumeId(uploadResult.id);
 
-    // Step 2: AI Analysis
     setAnalyzing(true);
     try {
       const analysis = await analyzeMutation.mutateAsync(uploadResult.id);
@@ -39,7 +37,7 @@ export default function ResumePage() {
     }
   };
 
-  // ── Loading spinner ──────────────────────────────────────────────────────
+  // ── Loading ────────────────────────────────────────────────────────────
   if (analyzing) {
     return (
       <div className="space-y-8">
@@ -58,19 +56,19 @@ export default function ResumePage() {
     );
   }
 
-  // ── Results ──────────────────────────────────────────────────────────────
+  // ── Results ────────────────────────────────────────────────────────────
   if (resumeData) {
-    const analysis = resumeData.analysis ?? {};
-    const metadata = resumeData.metadata ?? {};
-    const healthScore     = analysis.health_score ?? 0;
-    const healthBreakdown = analysis.health_breakdown ?? {};
-    const strengths       = analysis.strengths ?? [];
-    const weaknesses      = analysis.weaknesses ?? [];
-    const recommendations = analysis.recommendations ?? [];
-    const domain          = metadata.primary_domain ?? 'N/A';
-    const yearsExp        = metadata.years_of_experience ?? 0;
-    const totalProjects   = metadata.total_projects ?? 0;
-    const totalCerts      = metadata.total_certifications ?? 0;
+    const analysis       = resumeData.analysis ?? {};
+    const metadata       = resumeData.metadata ?? {};
+    const healthScore    = analysis.health_score ?? 0;
+    const healthBreakdown= analysis.health_breakdown ?? {};
+    const strengths      = Array.isArray(analysis.strengths) ? analysis.strengths : [];
+    const weaknesses     = Array.isArray(analysis.weaknesses) ? analysis.weaknesses : [];
+    const recommendations= Array.isArray(analysis.recommendations) ? analysis.recommendations : [];
+    const domain         = metadata.primary_domain ?? 'N/A';
+    const yearsExp       = metadata.years_of_experience ?? 0;
+    const totalProjects  = metadata.total_projects ?? 0;
+    const totalCerts     = metadata.total_certifications ?? 0;
 
     return (
       <div className="space-y-6">
@@ -87,7 +85,6 @@ export default function ResumePage() {
           </button>
         </div>
 
-        {/* Upload success banner */}
         <div className="flex items-center gap-2 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg px-4 py-3 text-sm text-green-800 dark:text-green-200">
           <CheckCircle className="w-4 h-4 shrink-0" />
           Resume uploaded and analyzed successfully!
@@ -102,12 +99,9 @@ export default function ResumePage() {
 
         {/* Score + Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Health Score */}
           <div className="md:col-span-1">
             <HealthScoreCard score={healthScore} breakdown={healthBreakdown} />
           </div>
-
-          {/* Metadata */}
           <div className="md:col-span-2 grid grid-cols-2 gap-4">
             <div className="bg-card border rounded-xl p-5">
               <p className="text-xs text-muted-foreground mb-1">Domain</p>
@@ -115,7 +109,7 @@ export default function ResumePage() {
             </div>
             <div className="bg-card border rounded-xl p-5">
               <p className="text-xs text-muted-foreground mb-1">Experience</p>
-              <p className="text-lg font-bold">{yearsExp > 0 ? `${yearsExp} year${yearsExp !== 1 ? 's' : ''}` : 'Fresher'}</p>
+              <p className="text-lg font-bold">{yearsExp > 0 ? `${yearsExp} yr${yearsExp !== 1 ? 's' : ''}` : 'Fresher'}</p>
             </div>
             <div className="bg-card border rounded-xl p-5">
               <p className="text-xs text-muted-foreground mb-1">Projects</p>
@@ -175,7 +169,7 @@ export default function ResumePage() {
     );
   }
 
-  // ── Upload form ──────────────────────────────────────────────────────────
+  // ── Upload form ────────────────────────────────────────────────────────
   return (
     <div className="space-y-8">
       <div>
@@ -183,147 +177,6 @@ export default function ResumePage() {
         <p className="mt-2 text-muted-foreground">Upload your resume and get AI-powered insights</p>
       </div>
       <ResumeUploader onUpload={handleUpload} userId={user?.id ?? ''} />
-    </div>
-  );
-}
-
-export default function ResumePage() {
-  const { user } = useAuth();
-  const [resumeId, setResumeId] = useState<string | null>(null);
-  const [resumeData, setResumeData] = useState<any>(null);
-  const [analysisError, setAnalysisError] = useState<string | null>(null);
-  const [analyzing, setAnalyzing] = useState(false);
-
-  const uploadMutation = useUploadResume();
-  const analyzeMutation = useAnalyzeResume();
-
-  const handleUpload = async (file: File) => {
-    if (!user?.id) throw new Error('Not authenticated');
-    setAnalysisError(null);
-
-    // Upload
-    const uploadResult = await uploadMutation.mutateAsync({ file, userId: user.id });
-    setResumeId(uploadResult.id);
-
-    // Analyze with AI — show spinner
-    setAnalyzing(true);
-    try {
-      const analysis = await analyzeMutation.mutateAsync(uploadResult.id);
-      setResumeData({
-        healthScore: analysis.analysis.health_score,
-        healthBreakdown: analysis.analysis.health_breakdown,
-        summary: {
-          totalExperience: analysis.metadata.years_of_experience ?? 0,
-          skills: [],
-          education: analysis.metadata.primary_domain ?? '',
-          projects: analysis.metadata.total_projects,
-          certifications: analysis.metadata.total_certifications,
-        },
-        skills: [],
-        timelineItems: [],
-        recommendations: analysis.analysis.recommendations.map((r: string) => ({
-          title: 'Recommendation',
-          description: r,
-        })),
-        strengths: analysis.analysis.strengths,
-        weaknesses: analysis.analysis.weaknesses,
-      });
-    } catch (err) {
-      setAnalysisError(
-        err instanceof Error ? err.message : 'AI analysis unavailable.'
-      );
-      setResumeData({
-        healthScore: 0,
-        healthBreakdown: {},
-        summary: { totalExperience: 0, skills: [], education: '', projects: 0, certifications: 0 },
-        skills: [],
-        timelineItems: [],
-        recommendations: [],
-        strengths: [],
-        weaknesses: [],
-      });
-    } finally {
-      setAnalyzing(false);
-    }
-  };
-
-  // Show AI analysis spinner after upload
-  if (analyzing) {
-    return (
-      <div className="space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold">Resume Intelligence</h1>
-          <p className="mt-2 text-muted-foreground">Upload your resume and get AI-powered insights</p>
-        </div>
-        <div className="flex flex-col items-center justify-center py-24 bg-card rounded-xl border">
-          <Loader2 className="w-12 h-12 animate-spin text-primary mb-4" />
-          <p className="text-lg font-medium">AI is analyzing your resume...</p>
-          <p className="text-sm text-muted-foreground mt-2">This takes 10–20 seconds. Please wait.</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold">Resume Intelligence</h1>
-        <p className="mt-2 text-muted-foreground">
-          Upload your resume and get AI-powered insights
-        </p>
-      </div>
-
-      {!resumeData ? (
-        <ResumeUploader onUpload={handleUpload} userId={user?.id ?? ''} />
-      ) : (
-        <div className="space-y-6">
-          {analysisError && (
-            <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-lg px-4 py-3 text-sm text-yellow-800 dark:text-yellow-200">
-              ⚠️ {analysisError}
-            </div>
-          )}
-
-          {resumeId && (
-            <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg px-4 py-3 text-sm text-green-800 dark:text-green-200">
-              ✓ Resume uploaded and stored (ID: {resumeId})
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <HealthScoreCard
-              score={resumeData.healthScore}
-              breakdown={resumeData.healthBreakdown}
-            />
-            <SummaryCard summary={resumeData.summary} />
-          </div>
-
-          {resumeData.skills.length > 0 && (
-            <SkillsGrid skills={resumeData.skills} />
-          )}
-
-          {resumeData.timelineItems.length > 0 && (
-            <Timeline items={resumeData.timelineItems} type="experience" />
-          )}
-
-          {resumeData.recommendations.length > 0 && (
-            <div>
-              <h2 className="text-2xl font-semibold mb-4">AI Recommendations</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {resumeData.recommendations.map((rec: any, index: number) => (
-                  <RecommendationCard key={index} {...rec} />
-                ))}
-              </div>
-            </div>
-          )}
-
-          <button
-            onClick={() => { setResumeData(null); setResumeId(null); setAnalysisError(null); }}
-            className="px-4 py-2 bg-secondary hover:bg-secondary/80 rounded-lg transition-colors text-sm"
-          >
-            Upload different resume
-          </button>
-        </div>
-      )}
     </div>
   );
 }
