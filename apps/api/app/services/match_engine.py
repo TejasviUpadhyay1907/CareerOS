@@ -149,7 +149,7 @@ class MatchEngine:
 
         # Parse job experience requirement
         job_min_years = 0
-        if "year" in job_exp_required.lower():
+        if job_exp_required and "year" in job_exp_required.lower():
             import re
             numbers = re.findall(r"\d+", job_exp_required)
             if numbers:
@@ -173,7 +173,7 @@ class MatchEngine:
 
     def _calculate_education_match(self, resume: dict[str, Any], job: dict[str, Any]) -> tuple[int, str]:
         """Calculate education match."""
-        job_education = job.get("education_required", "").lower()
+        job_education = (job.get("education_required") or "").lower()
 
         if not job_education or "any" in job_education:
             return 100, "No specific education requirement"
@@ -301,8 +301,8 @@ class MatchEngine:
 
     def _calculate_industry_match(self, resume: dict[str, Any], job: dict[str, Any]) -> tuple[int, str]:
         """Calculate industry match."""
-        job_industry = job.get("industry", "").lower()
-        resume_domain = resume.get("primary_domain", "").lower()
+        job_industry = (job.get("industry") or "").lower()
+        resume_domain = (resume.get("primary_domain") or "").lower()
 
         if not job_industry:
             return 100, "No industry specified"
