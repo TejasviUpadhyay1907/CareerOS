@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: careeros-api
+    runtime: python
+    rootDir: apps/api
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: USE_OPENROUTER
+        value: "true"
+      - key: DATABASE_URL
+        sync: false   # Set manually in Render dashboard
+      - key: CAREEROS_API_KEY
+        sync: false   # Your OpenRouter key
+      - key: SECRET_KEY
+        generateValue: true
+      - key: CORS_ORIGINS
+        sync: false   # Set to your Vercel URL
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "60"
