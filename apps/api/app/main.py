@@ -21,14 +21,17 @@ async def lifespan(app: FastAPI):
     """Application lifespan manager."""
     logger.info("Starting CareerOS API")
 
-    # Auto-create all tables from current SQLAlchemy models (dev mode)
-    # This ensures the DB schema always matches the ORM models
-    from app.db.base import Base
-    from app.db.session import engine
-    import app.db.models  # noqa — register all models
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    logger.info("Database tables verified/created")
+    # Auto-create all tables from current SQLAlchemy models
+    try:
+        from app.db.base import Base
+        from app.db.session import engine
+        import app.db.models  # noqa — register all models
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("Database tables verified/created")
+    except Exception as e:
+        logger.error(f"Database setup failed: {e}", exc_info=True)
+        # Don't crash the app — continue without DB tables
 
     # Seed demo data if demo mode is enabled
     if settings.demo_mode:
@@ -81,7 +84,11 @@ async def root():
     }
 
 
-# Serve uploaded files (local dev only)
-_uploads_dir = Path(__file__).parent.parent / "uploads"
-_uploads_dir.mkdir(parents=True, exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=str(_uploads_dir)), name="uploads")
+# Serve uploaded files (local dev only — in production use cloud storage)
+import os
+_uploads_dir = Path(os.environ.get("UPLOADS_DIR", str(Path(__file__).parent.parent / "uploads")))
+try:
+    _uploads_dir.mkdir(parents=True, exist_ok=True)
+    app.mount("/uploads", StaticFiles(directory=str(_uploads_dir)), name="uploads")
+except Exception as e:
+    logger.warning(f"Could not mount uploads directory: {e}")
