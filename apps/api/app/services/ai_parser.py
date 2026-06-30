@@ -11,107 +11,38 @@ logger = get_logger(__name__)
 class AIResumeParser:
     """AI-powered resume parser using OpenAI."""
 
-    RESUME_PARSER_PROMPT = """You are an expert resume parser. Extract structured information from the following resume text.
+    RESUME_PARSER_PROMPT = """You are an expert resume parser. Extract ALL structured information from the following resume text.
 
-Return ONLY a valid JSON object with this exact structure:
+IMPORTANT RULES:
+- Extract EVERY project, experience, skill, certification mentioned — do not skip anything
+- For years_of_experience: calculate from earliest job start date to now, or estimate from context
+- For primary_domain: identify the main field (e.g., "Software Engineering", "Data Science", "Product Management", "Finance")
+- For career_level: "student/fresher", "junior", "mid-level", "senior", or "lead/principal"
+- If a field is not mentioned, use null (not empty string)
+- For skills: separate into technical (programming languages, frameworks), soft (communication, leadership), tools (software, platforms)
+- Extract ALL projects even if they are personal/academic/hackathon projects
+
+Return ONLY a valid JSON object with this exact structure (no extra text):
 {
-    "personal_info": {
-        "name": string,
-        "email": string,
-        "phone": string,
-        "location": string,
-        "linkedin": string,
-        "github": string,
-        "portfolio": string
-    },
-    "professional_summary": string,
-    "experience": [
-        {
-            "company": string,
-            "title": string,
-            "location": string,
-            "start_date": string (ISO format),
-            "end_date": string (ISO format or "present"),
-            "is_current": boolean,
-            "description": string,
-            "achievements": [string]
-        }
-    ],
-    "education": [
-        {
-            "institution": string,
-            "degree": string,
-            "field_of_study": string,
-            "location": string,
-            "start_date": string (ISO format),
-            "end_date": string (ISO format),
-            "gpa": string,
-            "honors": [string]
-        }
-    ],
-    "projects": [
-        {
-            "name": string,
-            "description": string,
-            "url": string,
-            "technologies": [string],
-            "achievements": [string]
-        }
-    ],
-    "skills": {
-        "technical": [string],
-        "soft": [string],
-        "tools": [string]
-    },
-    "certifications": [
-        {
-            "name": string,
-            "issuer": string,
-            "issue_date": string (ISO format),
-            "expiration_date": string (ISO format),
-            "credential_id": string,
-            "url": string
-        }
-    ],
-    "languages": [
-        {
-            "name": string,
-            "proficiency": string
-        }
-    ],
-    "achievements": [
-        {
-            "title": string,
-            "description": string,
-            "date": string (ISO format),
-            "category": string
-        }
-    ],
-    "links": [
-        {
-            "type": string,
-            "url": string,
-            "label": string
-        }
-    ],
-    "years_of_experience": number,
-    "primary_domain": string,
-    "career_level": string,
-    "has_leadership_experience": boolean,
-    "has_open_source_contributions": boolean,
-    "has_internships": boolean,
-    "has_research_experience": boolean,
-    "has_publications": boolean
+    "personal_info": {"name": null, "email": null, "phone": null, "location": null, "linkedin": null, "github": null, "portfolio": null},
+    "professional_summary": null,
+    "experience": [{"company": null, "title": null, "location": null, "start_date": null, "end_date": null, "is_current": false, "description": null, "achievements": []}],
+    "education": [{"institution": null, "degree": null, "field_of_study": null, "location": null, "start_date": null, "end_date": null, "gpa": null, "honors": []}],
+    "projects": [{"name": null, "description": null, "url": null, "technologies": [], "achievements": []}],
+    "skills": {"technical": [], "soft": [], "tools": []},
+    "certifications": [{"name": null, "issuer": null, "issue_date": null, "expiration_date": null, "credential_id": null, "url": null}],
+    "languages": [{"name": null, "proficiency": null}],
+    "achievements": [{"title": null, "description": null, "date": null, "category": null}],
+    "links": [{"type": null, "url": null, "label": null}],
+    "years_of_experience": 0,
+    "primary_domain": null,
+    "career_level": null,
+    "has_leadership_experience": false,
+    "has_open_source_contributions": false,
+    "has_internships": false,
+    "has_research_experience": false,
+    "has_publications": false
 }
-
-Rules:
-- Return ONLY the JSON, no additional text
-- Use null for missing fields
-- Extract dates in ISO format (YYYY-MM-DD)
-- If date is not specific, use first day of month/year
-- "present" for current positions
-- Be thorough and extract all available information
-- Handle various resume formats gracefully
 
 Resume text:
 """

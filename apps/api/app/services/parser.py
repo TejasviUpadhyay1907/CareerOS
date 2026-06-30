@@ -38,20 +38,28 @@ class ParserService:
             raise
 
     async def extract_text_from_docx(self, file_content: bytes) -> str:
-        """Extract text from DOCX file.
-
-        Args:
-            file_content: DOCX file content as bytes
-
-        Returns:
-            Extracted text
-        """
+        """Extract text from DOCX file including tables."""
         try:
             import docx
 
             doc = docx.Document(io.BytesIO(file_content))
-            text = "\n".join([paragraph.text for paragraph in doc.paragraphs])
+            parts = []
 
+            # Extract paragraphs
+            for para in doc.paragraphs:
+                if para.text.strip():
+                    parts.append(para.text)
+
+            # Extract tables (many resumes put skills/projects in tables)
+            for table in doc.tables:
+                for row in table.rows:
+                    row_text = " | ".join(
+                        cell.text.strip() for cell in row.cells if cell.text.strip()
+                    )
+                    if row_text:
+                        parts.append(row_text)
+
+            text = "\n".join(parts)
             logger.info(f"Extracted {len(text)} characters from DOCX")
             return self.clean_text(text)
 
@@ -60,23 +68,13 @@ class ParserService:
             raise
 
     def clean_text(self, text: str) -> str:
-        """Clean extracted text.
-
-        Args:
-            text: Raw text
-
-        Returns:
-            Cleaned text
-        """
-        # Remove excessive whitespace
-        text = re.sub(r"\s+", " ", text)
-
-        # Remove special characters that might interfere
+        """Clean extracted text while preserving structure."""
+        # Remove control characters but keep newlines and tabs
         text = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]", "", text)
-
-        # Normalize line breaks
-        text = re.sub(r"\n\s*\n", "\n\n", text)
-
+        # Reduce multiple spaces to single space (but keep newlines)
+        text = re.sub(r"[ \t]+", " ", text)
+        # Reduce 3+ newlines to 2
+        text = re.sub(r"\n{3,}", "\n\n", text)
         return text.strip()
 
     def detect_sections(self, text: str) -> dict[str, str]:
