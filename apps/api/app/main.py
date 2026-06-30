@@ -9,8 +9,6 @@ from fastapi.staticfiles import StaticFiles
 from app.api.v1 import api_router
 from app.core.config import settings
 from app.core.logging import configure_logging, get_logger
-from app.db.session import AsyncSessionLocal
-from app.services.demo_seeder import seed_demo_data
 
 configure_logging()
 logger = get_logger(__name__)
@@ -21,26 +19,16 @@ async def lifespan(app: FastAPI):
     """Application lifespan manager."""
     logger.info("Starting CareerOS API")
 
-    # Auto-create all tables from current SQLAlchemy models
+    # Create DB tables (skip if DB is unavailable — health check still works)
     try:
         from app.db.base import Base
         from app.db.session import engine
         import app.db.models  # noqa — register all models
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
-        logger.info("Database tables verified/created")
+        logger.info("Database tables ready")
     except Exception as e:
-        logger.error(f"Database setup failed: {e}", exc_info=True)
-        # Don't crash the app — continue without DB tables
-
-    # Seed demo data if demo mode is enabled
-    if settings.demo_mode:
-        logger.info("Demo mode enabled, seeding demo data...")
-        async with AsyncSessionLocal() as db:
-            try:
-                await seed_demo_data(db)
-            except Exception as e:
-                logger.error(f"Failed to seed demo data: {e}", exc_info=True)
+        logger.warning(f"DB init skipped: {e}")
 
     yield
     logger.info("Shutting down CareerOS API")
