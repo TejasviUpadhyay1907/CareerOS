@@ -32,6 +32,28 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"DB init warning: {e}")
 
+    # Auto-create demo user on every startup (SQLite resets on Render redeploy)
+    try:
+        from app.db.session import AsyncSessionLocal
+        from app.repositories.user import UserRepository
+        from app.services.auth import AuthService
+        async with AsyncSessionLocal() as db:
+            user_repo = UserRepository(db)
+            auth_service = AuthService(user_repo)
+            existing = await user_repo.get_by_email("demo@careeros.ai")
+            if not existing:
+                await auth_service.register_user(
+                    email="demo@careeros.ai",
+                    password="Demo1234!",
+                    first_name="Demo",
+                    last_name="User",
+                )
+                logger.info("Demo user created: demo@careeros.ai / Demo1234!")
+            else:
+                logger.info("Demo user already exists")
+    except Exception as e:
+        logger.warning(f"Demo user setup warning: {e}")
+
     yield
     logger.info("Shutting down CareerOS API")
 
