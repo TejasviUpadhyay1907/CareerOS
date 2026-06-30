@@ -145,9 +145,18 @@ export default function LoginPage() {
         </div>
 
         {/* Demo shortcut */}
-        <p className="text-center text-xs text-muted-foreground mt-4">
-          Demo credentials: demo@careeros.ai / Demo1234!
-        </p>
+        <div className="text-center mt-4">
+          <p className="text-xs text-muted-foreground mb-2">
+            Demo: <span className="font-mono">demo@careeros.ai</span> / <span className="font-mono">Demo1234!</span>
+          </p>
+          <button
+            type="button"
+            onClick={() => { setEmail('demo@careeros.ai'); setPassword('Demo1234!'); setMode('login'); }}
+            className="text-xs text-primary hover:underline"
+          >
+            Click to fill demo credentials
+          </button>
+        </div>
       </div>
     </div>
   );
