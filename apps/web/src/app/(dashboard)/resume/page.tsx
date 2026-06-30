@@ -5,8 +5,7 @@ import { useAuth } from '@/components/providers/auth-provider';
 import { useUploadResume, useAnalyzeResume } from '@/hooks/api/resume';
 import { ResumeUploader } from '@/components/resume/ResumeUploader';
 import { HealthScoreCard } from '@/components/resume/HealthScoreCard';
-import { RecommendationCard } from '@/components/resume/RecommendationCard';
-import { Loader2, CheckCircle, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Loader2, CheckCircle, AlertTriangle, RefreshCw, Lightbulb } from 'lucide-react';
 
 export default function ResumePage() {
   const { user } = useAuth();
@@ -156,13 +155,18 @@ export default function ResumePage() {
 
         {/* AI Recommendations */}
         {recommendations.length > 0 && (
-          <div>
-            <h2 className="text-xl font-semibold mb-4">AI Recommendations</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="bg-card border rounded-xl p-5">
+            <h3 className="font-semibold mb-3 flex items-center gap-2">
+              <Lightbulb className="w-4 h-4 text-yellow-500" /> AI Recommendations
+            </h3>
+            <ul className="space-y-2">
               {recommendations.map((rec: string, i: number) => (
-                <RecommendationCard key={i} title={`Tip ${i + 1}`} description={rec} />
+                <li key={i} className="text-sm flex items-start gap-2">
+                  <span className="text-yellow-500 shrink-0 mt-0.5">•</span>
+                  {rec}
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
         )}
       </div>
