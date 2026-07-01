@@ -101,6 +101,16 @@ async def upload_resume(
         )
 
         logger.info(f"Resume uploaded successfully: {resume.id}")
+
+        # Store to Lemma datastore (runs async in background, won't block upload)
+        try:
+            from app.ai.lemma_client import lemma_client
+            if lemma_client.is_enabled():
+                await lemma_client.initialize()
+                await lemma_client.upload_resume_file(file.filename, file_content)
+        except Exception:
+            pass  # Lemma is optional — never block the main flow
+
         return ResumeUploadResponse(
             id=str(resume.id),
             original_filename=resume.original_filename,
@@ -322,6 +332,23 @@ async def analyze_resume(
             await repo.create_links(request.resume_id, parsed_data["links"])
 
         logger.info(f"Resume analyzed successfully: {request.resume_id}")
+
+        # Store analysis to Lemma structured datastore
+        try:
+            from app.ai.lemma_client import lemma_client
+            if lemma_client.is_enabled():
+                await lemma_client.store_resume_analysis({
+                    "user_id":              str(current_user.id),
+                    "filename":             resume.original_filename,
+                    "health_score":         health_result["health_score"],
+                    "domain":               parsed_data.get("primary_domain", ""),
+                    "career_level":         parsed_data.get("career_level", ""),
+                    "strengths":            health_result.get("strengths", []),
+                    "skills":               list((parsed_data.get("skills") or {}).get("technical", [])),
+                    "years_of_experience":  parsed_data.get("years_of_experience", 0),
+                })
+        except Exception:
+            pass  # Lemma is optional
 
         return ResumeAnalyzeResponse(
             resume_id=request.resume_id,

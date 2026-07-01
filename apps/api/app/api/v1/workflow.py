@@ -114,6 +114,19 @@ async def create_application(
         except Exception as e:
             logger.warning(f"Activity logging failed for application {application.id}: {e}")
 
+        # Store to Lemma structured datastore (optional, non-blocking)
+        try:
+            from app.ai.lemma_client import lemma_client
+            if lemma_client.is_enabled():
+                await lemma_client.store_job_application({
+                    "user_id":      str(current_user.id),
+                    "status":       application_data.status,
+                    "notes":        application_data.notes or "",
+                    "applied_date": application.created_at.isoformat() if application.created_at else "",
+                })
+        except Exception:
+            pass  # Lemma is optional
+
         return ApplicationResponse.model_validate(application)
     except SQLAlchemyError as e:
         logger.error(f"Database error creating application: {e}", exc_info=True)

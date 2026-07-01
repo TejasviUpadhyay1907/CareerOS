@@ -62,6 +62,11 @@ class Settings(BaseSettings):
         """Get the API key, preferring CAREEROS_API_KEY over OPENAI_API_KEY."""
         return self.careeros_api_key or self.openai_api_key_fallback
 
+    # Lemma SDK
+    lemma_base_url: str = Field(default="http://127-0-0-1.sslip.io:8711", description="Lemma local/cloud base URL")
+    lemma_api_key: str = Field(default="", description="Lemma API key")
+    lemma_pod_id: str = Field(default="", description="Lemma Pod ID")
+
     # Logging
     log_level: str = Field(default="INFO", description="Log level")
 
