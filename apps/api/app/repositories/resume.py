@@ -391,6 +391,19 @@ class ResumeRepository:
         """
         educations = []
         for edu_data in education_data:
+            # Handle GPA as string or float
+            gpa_raw = edu_data.get("gpa")
+            gpa = None
+            if gpa_raw is not None:
+                try:
+                    # Handle formats like "8.5/10", "3.8", "3.8/4.0"
+                    gpa_str = str(gpa_raw).strip()
+                    if "/" in gpa_str:
+                        gpa = float(gpa_str.split("/")[0])
+                    else:
+                        gpa = float(gpa_str)
+                except (ValueError, TypeError):
+                    gpa = None
             education = ResumeEducation(
                 resume_id=resume_id,
                 institution=edu_data.get("institution", ""),
@@ -399,7 +412,7 @@ class ResumeRepository:
                 location=edu_data.get("location"),
                 start_date=parse_date(edu_data.get("start_date")),
                 end_date=parse_date(edu_data.get("end_date")),
-                gpa=edu_data.get("gpa"),
+                gpa=gpa,
                 honors=edu_data.get("honors"),
             )
             self.db.add(education)
